@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Popper - Typing Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            width: 90%;
+            max-width: 1000px;
+            height: 85vh;
+            background: rgba(0, 0, 30, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header styling */
+        .game-header {
+            padding: 20px;
+            background: rgba(0, 10, 40, 0.8);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .game-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stats {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .stat-box {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            min-width: 100px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #ffd166;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        /* Game area styling */
+        .game-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #0f1b3a, #1c3b6a);
+        }
+        
+        /* Clouds styling */
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            padding: 15px 30px;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            cursor: default;
+            user-select: none;
+            text-align: center;
+            transition: transform 0.2s ease;
+            animation: float 1s infinite alternate;
+        }
+        
+        .cloud:hover {
+            transform: scale(1.05);
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-8px); }
+        }
+        
+        /* Input area styling */
+        .input-area {
+            padding: 25px;
+            background: rgba(0, 10, 40, 0.8);
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .word-input-container {
+            display: flex;
+            gap: 15px;
+        }
+        
+        #word-input {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        #word-input:focus {
+            background: white;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        #submit-btn {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        #submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        #submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .difficulty-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .difficulty-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .difficulty-btn:hover, .difficulty-btn.active {
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            border-color: transparent;
+            transform: translateY(-3px);
+        }
+        
+        /* Pop animation */
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.8); opacity: 0.7; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+        
+        .pop {
+            animation: pop 0.5s forwards;
+        }
+        
+        /* Start screen */
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 20, 50, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+        
+        .start-title {
+            font-size: 3.5rem;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .start-btn {
+            padding: 18px 50px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            margin-top: 30px;
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 20px;
+            max-width: 600px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .instructions h2 {
+            margin-bottom: 15px;
+            color: #ffd166;
+        }
+        
+        .instructions p {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .game-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .stats {
+                width: 100%;
+                justify-content: space-around;
+            }
+            
+            .stat-box {
+                min-width: auto;
+                padding: 8px 15px;
+            }
+            
+            .word-input-container {
+                flex-direction: column;
+            }
+            
+            #submit-btn {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">CLOUD POPPER</h1>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="score">0</div>
+                    <div class="stat-label">SCORE</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="lives">3</div>
+                    <div class="stat-label">LIVES</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="level">Easy</div>
+                    <div class="stat-label">LEVEL</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <!-- Clouds will be dynamically added here -->
+        </div>
+        
+        <div class="input-area">
+            <div class="word-input-container">
+                <input type="text" id="word-input" placeholder="Type the word in the cloud and press Enter...">
+                <button id="submit-btn">POP!</button>
+            </div>
+            
+            <div class="difficulty-controls">
+                <button class="difficulty-btn active" data-level="easy">Easy</button>
+                <button class="difficulty-btn" data-level="medium">Medium</button>
+                <button class="difficulty-btn" data-level="hard">Hard</button>
+            </div>
+        </div>
+        
+        <div class="start-screen" id="startScreen">
+            <h1 class="start-title">Cloud Popper Typing Game</h1>
+            
+            <div class="instructions">
+                <h2>How to Play</h2>
+                <p>Type the words shown in the floating clouds to pop them!</p>
+                <p>Press Enter or click POP! to submit your word.</p>
+                <p>Pop clouds to earn points - the faster you type, the more points you get!</p>
+                <p>If a cloud reaches the left side, you lose a life.</p>
+                <p>Choose your difficulty level to make the game easier or harder.</p>
+            </div>
+            
+            <button class="start-btn" id="startBtn">START GAME</button>
+        </div>
+    </div>
+
+    <script>
+        // Game elements
+        const gameArea = document.getElementById('gameArea');
+        const wordInput = document.getElementById('word-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+        const levelElement = document.getElementById('level');
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+        const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+        
+        // Game state
+        let score = 0;
+        let lives = 3;
+        let gameActive = false;
+        let currentLevel = 'easy';
+        let clouds = [];
+        let cloudInterval;
+        
+        // Word lists for different difficulties
+        const wordLists = {
+            easy: ['sun', 'sky', 'fun', 'cat', 'dog', 'car', 'run', 'fly', 'red', 'blue', 'moon', 'star', 'fish', 'bird', 'tree'],
+            medium: ['cloud', 'water', 'earth', 'light', 'music', 'happy', 'green', 'ocean', 'beach', 'river', 'mountain', 'forest', 'desert', 'island', 'valley'],
+            hard: ['computer', 'keyboard', 'internet', 'universe', 'adventure', 'challenge', 'mysterious', 'beautiful', 'fantastic', 'wonderful', 'incredible', 'extraordinary', 'technology', 'programming', 'development']
+        };
+        
+        // Difficulty settings
+        const difficultySettings = {
+            easy: { speed: 1, cloudCount: 3, spawnRate: 4000, wordLength: 3 },
+            medium: { speed: 1.8, cloudCount: 5, spawnRate: 3000, wordLength: 5 },
+            hard: { speed: 2.8, cloudCount: 7, spawnRate: 2000, wordLength: 8 }
+        };
+        
+        // Start the game
+        startBtn.addEventListener('click', () => {
+            startScreen.style.opacity = '0';
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+                gameActive = true;
+                startGame();
+            }, 500);
+        });
+        
+        // Setup difficulty buttons
+        difficultyButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                difficultyButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentLevel = button.dataset.level;
+                levelElement.textContent = currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1);
+                
+                if (gameActive) {
+                    restartGame();
+                }
+            });
+        });
+        
+        // Submit word
+        submitBtn.addEventListener('click', checkWord);
+        wordInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                checkWord();
+            }
+        });
+        
+        // Start the game
+        function startGame() {
+            score = 0;
+            lives = 3;
+            clouds = [];
+            updateStats();
+            
+            // Clear any existing clouds
+            gameArea.innerHTML = '';
+            
+            // Start cloud generation
+            cloudInterval = setInterval(createCloud, difficultySettings[currentLevel].spawnRate);
+            
+            // Create initial clouds
+            for (let i = 0; i < difficultySettings[currentLevel].cloudCount; i++) {
+                setTimeout(() => createCloud(), i * 1000);
+            }
+        }
+        
+        // Restart game with new difficulty
+        function restartGame() {
+            clearInterval(cloudInterval);
+            startGame();
+        }
+        
+        // Create a new cloud
+        function createCloud() {
+            if (!gameActive || clouds.length >= difficultySettings[currentLevel].cloudCount) return;
+            
+            const cloud = document.createElement('div');
+            cloud.className = 'cloud';
+            
+            // Get a random word
+            const words = wordLists[currentLevel];
+            const word = words[Math.floor(Math.random() * words.length)];
+            cloud.textContent = word;
+            cloud.dataset.word = word;
+            
+            // Random position
+            const top = Math.random() * 70;
+            cloud.style.top = `${top}%`;
+            cloud.style.right = '-250px'; // Start off-screen to the right
+            
+            gameArea.appendChild(cloud);
+            clouds.push(cloud);
+            
+            // Animate cloud movement
+            const speed = difficultySettings[currentLevel].speed;
+            const duration = (10 + Math.random() * 5) * 1000 / speed;
+            
+            cloud.animate(
+                [
+                    { right: '-250px' },
+                    { right: '100%' }
+                ],
+                {
+                    duration: duration,
+                    fill: 'forwards'
+                }
+            ).onfinish = () => {
+                if (cloud.parentNode) {
+                    // Cloud reached left side
+                    cloud.remove();
+                    clouds = clouds.filter(c => c !== cloud);
+                    loseLife();
+                }
+            };
+        }
+        
+        // Check if typed word matches any cloud
+        function checkWord() {
+            const typedWord = wordInput.value.trim().toLowerCase();
+            if (!typedWord) return;
+            
+            let popped = false;
+            
+            // Check all clouds for a match
+            for (let i = 0; i < clouds.length; i++) {
+                const cloud = clouds[i];
+                const cloudWord = cloud.dataset.word.toLowerCase();
+                
+                if (cloudWord === typedWord) {
+                    // Add pop animation
+                    cloud.classList.add('pop');
+                    
+                    // Remove cloud after animation
+                    setTimeout(() => {
+                        if (cloud.parentNode) {
+                            cloud.remove();
+                            clouds = clouds.filter(c => c !== cloud);
+                        }
+                    }, 500);
+                    
+                    // Update score
+                    const wordLength = cloudWord.length;
+                    const points = wordLength * 10;
+                    score += points;
+                    updateStats();
+                    
+                    popped = true;
+                    break;
+                }
+            }
+            
+            // Clear input
+            wordInput.value = '';
+            wordInput.focus();
+            
+            // Visual feedback
+            if (!popped) {
+                wordInput.style.boxShadow = '0 0 15px red';
+                setTimeout(() => {
+                    wordInput.style.boxShadow = '';
+                }, 500);
+            }
+        }
+        
+        // Player loses a life
+        function loseLife() {
+            lives--;
+            updateStats();
+            
+            if (lives <= 0) {
+                endGame();
+            } else {
+                // Visual feedback for life loss
+                livesElement.style.color = 'red';
+                setTimeout(() => {
+                    livesElement.style.color = '#ffd166';
+                }, 500);
+            }
+        }
+        
+        // Update score and lives display
+        function updateStats() {
+            scoreElement.textContent = score;
+            livesElement.textContent = lives;
+        }
+        
+        // End the game
+        function endGame() {
+            gameActive = false;
+            clearInterval(cloudInterval);
+            
+            // Remove all clouds
+            clouds.forEach(cloud => {
+                cloud.remove();
+            });
+            clouds = [];
+            
+            // Show game over
+            setTimeout(() => {
+                alert(`Game Over!\nYour final score: ${score}`);
+                startScreen.style.display = 'flex';
+                setTimeout(() => {
+                    startScreen.style.opacity = '1';
+                }, 10);
+            }, 500);
+        }
+        
+        // Focus input when clicking anywhere
+        document.addEventListener('click', () => {
+            if (gameActive) {
+                wordInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>
